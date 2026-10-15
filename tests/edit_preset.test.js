@@ -87,3 +87,18 @@ test('a preset with no model/IR stays on "-- None --"', async () => {
     assert.equal(modelSel.value, '');
     assert.equal(modelSel.options.some(o => /missing/.test(o.textContent)), false);
 });
+
+test('focusing a dropdown after edit keeps a missing model/IR, and save keeps it', async () => {
+    const env = load({ models: [{ name: 'other.nam' }], irs: [] });
+    await env.window.namEditPreset(1);
+    // The selects re-populate on focus; that rebuild must not drop "(missing)".
+    await env.window.namPopulatePresetDropdowns();
+    const modelSel = env.document.getElementById('nam-preset-model');
+    assert.equal(modelSel.value, 'twin.nam');
+    assert.ok(modelSel.options.some(o => o.value === 'twin.nam' && /missing/.test(o.textContent)));
+    assert.equal(env.document.getElementById('nam-preset-ir').value, 'cab.wav');
+    await env.window.namSavePreset();
+    const post = env.posts.find(p => p.url === '/api/plugins/nam_tone/presets');
+    assert.equal(post.body.model_file, 'twin.nam');
+    assert.equal(post.body.ir_file, 'cab.wav');
+});

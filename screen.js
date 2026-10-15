@@ -2267,11 +2267,17 @@ window.namPopulatePresetDropdowns = async function() {
         const cur = modelSel.value;
         modelSel.innerHTML = '<option value="">-- None --</option>' +
             models.map(m => `<option value="${esc(m.name)}" ${m.name === cur ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+        // Rebuilding drops a "(missing)" option added for a saved file that is
+        // no longer on disk; keep it so a later Save doesn't write "".
+        _namEnsureOption(modelSel, cur);
+        modelSel.value = cur;
     }
     if (irSel) {
         const cur = irSel.value;
         irSel.innerHTML = '<option value="">-- None --</option>' +
             irs.map(m => `<option value="${esc(m.name)}" ${m.name === cur ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+        _namEnsureOption(irSel, cur);
+        irSel.value = cur;
     }
 };
 

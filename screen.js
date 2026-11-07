@@ -1335,7 +1335,30 @@ function _namPlayerSlot() {
         ? fb.ui.playerControlSlot() : null;
 }
 
+// On the desktop app this plugin's AMP loads per-song NAM tones into the
+// native engine's chain. When the desktop's Tone Automation is on, it owns that
+// same chain (it switches the user's own presets by song section), so AMP and
+// Tone Automation fight: each tone change from one undoes the other and the
+// guitar ends up on whichever per-song tone landed last. Keep AMP and its
+// picker out of the player while Tone Automation is on; the desktop's own
+// Tone Switching panel (incl. its whole-song tone pick) covers that case.
+function _namToneAutomationOwnsAmp() {
+    try {
+        const ta = typeof window !== 'undefined' && window.feedBackDesktop && window._aeToneAutomation;
+        return !!(ta && typeof ta.isEnabled === 'function' && ta.isEnabled() === true);
+    } catch (_) {
+        return false;
+    }
+}
+
 function _namInjectButton() {
+    if (_namToneAutomationOwnsAmp()) {
+        for (const id of ['btn-nam', 'nam-preset-picker']) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+        return;
+    }
     const slot = _namPlayerSlot();
     const controls = slot || document.getElementById('player-controls');
     if (!controls) return;

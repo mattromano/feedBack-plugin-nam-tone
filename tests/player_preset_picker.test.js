@@ -22,7 +22,7 @@ function closeButton() {
     return { tagName: 'BUTTON', id: 'btn-close', parentNode: null };
 }
 
-function load({ v3 = true, intervals } = {}) {
+function load({ v3 = true, intervals, desktop = false } = {}) {
     const slot = makeContainer('v3-plugin-controls-slot');
     const bar = makeContainer('player-controls');
     const close = closeButton();
@@ -35,6 +35,10 @@ function load({ v3 = true, intervals } = {}) {
             sb.playSong = async () => {};
             sb.showScreen = () => {};
             if (intervals) sb.setInterval = (fn) => { intervals.push(fn); return intervals.length; };
+            if (desktop) {
+                sb.feedBackDesktop = { audio: {} };
+                sb._aeToneAutomation = { isEnabled: () => desktop === 'tone-automation' };
+            }
             if (v3) {
                 sb.feedBack = { uiVersion: 'v3', ui: { playerControlSlot: () => slot } };
             }
@@ -181,4 +185,19 @@ test('the pick is the fallback for an unmapped song; mappings win on the next ma
     await env.window.playSong('mapped.archive');             // new song clears the override
     await env.flush();
     assert.equal(env.loads[env.loads.length - 1], 'p1', 'mapped song uses its mapping');
+});
+
+test('desktop + Tone Automation on: no AMP or picker (they would fight over the chain)', async () => {
+    const env = load({ v3: true, desktop: 'tone-automation' });
+    await env.window.playSong('song.archive');
+    await tick();
+    assert.deepEqual(env.slot.childNodes.map(c => c.id), []);
+    assert.equal(env.document.getElementById('btn-nam'), null);
+    assert.equal(env.bar.childNodes.length, 1, 'legacy bar untouched (only ✕ Close)');
+});
+test('desktop with Tone Automation off: AMP and picker still mount', async () => {
+    const env = load({ v3: true, desktop: 'plain' });
+    await env.window.playSong('song.archive');
+    await tick();
+    assert.deepEqual(env.slot.childNodes.map(c => c.id), ['btn-nam', 'nam-preset-picker']);
 });
